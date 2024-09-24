@@ -1,0 +1,142 @@
+import 'package:flutter/material.dart';
+import 'package:audioplayers/audioplayers.dart';
+import 'dart:async';
+
+void main() {
+  runApp(ReminderApp());
+}
+
+class ReminderApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: ReminderHome(),
+    );
+  }
+}
+
+class ReminderHome extends StatefulWidget {
+  @override
+  _ReminderHomeState createState() => _ReminderHomeState();
+}
+
+class _ReminderHomeState extends State<ReminderHome> {
+  String _selectedDay = 'Monday';
+  String _selectedActivity = 'Wake up';
+  TimeOfDay _selectedTime = TimeOfDay.now();
+  Timer? _timer;
+  final player = AudioPlayer();
+
+  final List<String> _daysOfWeek = [
+    'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'
+  ];
+
+  final List<String> _activities = [
+    'Wake up', 'Go to gym', 'Breakfast', 'Meetings', 'Lunch', 'Quick nap',
+    'Go to library', 'Dinner', 'Go to sleep'
+  ];
+
+  void _setReminder() {
+    final now = DateTime.now();
+    final reminderTime = DateTime(now.year, now.month, now.day, _selectedTime.hour, _selectedTime.minute);
+
+    if (_timer != null) {
+      _timer!.cancel();
+    }
+
+    _timer = Timer(reminderTime.difference(now), _playReminder);
+  }
+
+  void _playReminder() {
+    player.play(AssetSource('assets/chime.mp3'));  // Ensure you have the sound file in assets
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Reminder: $_selectedActivity'))
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Daily Reminder App'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Day of the week dropdown
+            DropdownButton<String>(
+              value: _selectedDay,
+              items: _daysOfWeek.map((day) {
+                return DropdownMenuItem(
+                  value: day,
+                  child: Text(day),
+                );
+              }).toList(),
+              onChanged: (newDay) {
+                setState(() {
+                  _selectedDay = newDay!;
+                });
+              },
+            ),
+            
+            SizedBox(height: 20),
+
+            // Time picker
+            Text('Select Time:'),
+            ElevatedButton(
+              onPressed: () async {
+                TimeOfDay? pickedTime = await showTimePicker(
+                  context: context,
+                  initialTime: _selectedTime,
+                );
+                if (pickedTime != null && pickedTime != _selectedTime) {
+                  setState(() {
+                    _selectedTime = pickedTime;
+                  });
+                }
+              },
+              child: Text('Choose Time: ${_selectedTime.format(context)}'),
+            ),
+
+            SizedBox(height: 20),
+
+            // Activity dropdown
+            DropdownButton<String>(
+              value: _selectedActivity,
+              items: _activities.map((activity) {
+                return DropdownMenuItem(
+                  value: activity,
+                  child: Text(activity),
+                );
+              }).toList(),
+              onChanged: (newActivity) {
+                setState(() {
+                  _selectedActivity = newActivity!;
+                });
+              },
+            ),
+
+            SizedBox(height: 20),
+
+            // Set reminder button
+            ElevatedButton(
+              onPressed: _setReminder,
+              child: Text('Set Reminder'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    if (_timer != null) {
+      _timer!.cancel();
+    }
+    player.dispose();
+    super.dispose();
+  }
+}
